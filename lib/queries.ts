@@ -199,3 +199,75 @@ export async function createCancionVersion(input: {
   return version.id;
 }
 
+/** Lista todas las versiones guardadas (el "banco" completo), para la pantalla de biblioteca. */
+export async function getAllVersions(query: string = ''): Promise<VersionBusqueda[]> {
+  return searchVersions(query);
+}
+
+/** Trae una versión completa (con secciones) por su ID, para precargar el editor. */
+export async function getVersionCompleta(versionId: string): Promise<Version | null> {
+  const { data, error } = await supabase
+    .from('versiones')
+    .select(
+      `id, cancion_id, etiqueta_version, tono_original, capo,
+       canciones ( titulo, artista ),
+       secciones ( id, tipo, etiqueta, orden, acordes, letra )`
+    )
+    .eq('id', versionId)
+    .single();
+  if (error || !data) return null;
+  const v = data as unknown as Version;
+  return { ...v, secciones: [...v.secciones].sort((a, b) => a.orden - b.orden) };
+}
+
+/** Actualiza el título/artista, los datos de la versión, y reemplaza sus secciones. */
+export async function updateCancionVersion(
+  versionId: string,
+  input: {
+    titulo: string;
+    artista: string;
+    etiquetaVersion: string;
+    tono: string;
+    secciones: SeccionInput[];
+  }
+): Promise<void> {
+  const { data: version, error: e0 } = await supabase
+    .from('versiones')
+    .select('cancion_id')
+    .eq('id', versionId)
+    .single();
+  if (e0 || !version) throw e0 || new Error('No se encontró la versión a editar');
+
+  const { error: e1 } = await supabase
+    .from('canciones')
+    .update({ titulo: input.titulo, artista: input.artista })
+    .eq('id', version.cancion_id);
+  if (e1) throw e1;
+
+  const { error: e2 } = await supabase
+    .from('versiones')
+    .update({ etiqueta_version: input.etiquetaVersion || 'Estudio', tono_original: input.tono || null })
+    .eq('id', versionId);
+  if (e2) throw e2;
+
+  const { error: e3 } = await supabase.from('secciones').delete().eq('version_id', versionId);
+  if (e3) throw e3;
+
+  const filas = input.secciones.map((s, i) => ({
+    version_id: versionId,
+    tipo: s.tipo,
+    etiqueta: s.etiqueta,
+    orden: i + 1,
+    acordes: s.acordesTexto
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((tok) => parseChordToken(tok)),
+    letra: s.letra || null,
+  }));
+  if (filas.length > 0) {
+    const { error: e4 } = await supabase.from('secciones').insert(filas);
+    if (e4) throw e4;
+  }
+}
+

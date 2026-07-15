@@ -8,7 +8,12 @@ export default async function HomePage() {
 
   return (
     <main className="max-w-md mx-auto p-4">
-      <h1 className="text-xl font-semibold mb-4">Tus setlists</h1>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-xl font-semibold">Tus setlists</h1>
+        <Link href="/canciones" className="text-sm text-accent underline">
+          Tus canciones
+        </Link>
+      </div>
 
       {setlists.length === 0 && (
         <div className="text-center text-muted py-10 text-sm">Todavía no tienes setlists.</div>

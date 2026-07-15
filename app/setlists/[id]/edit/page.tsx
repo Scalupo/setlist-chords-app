@@ -96,6 +96,13 @@ export default function EditarSetlistPage() {
                   {v.etiqueta_version}
                 </span>
               </div>
+              <button
+                className="w-7 h-7 rounded-full border border-border text-xs"
+                onClick={() => router.push(`/canciones/${v.id}/editar`)}
+                title="Editar acordes de esta canción"
+              >
+                ✏️
+              </button>
               <button className="w-7 h-7 rounded-full border border-border text-xs" onClick={() => mover(i, -1)}>
                 ↑
               </button>
