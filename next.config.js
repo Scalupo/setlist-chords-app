@@ -18,9 +18,24 @@ const withPWA = require('next-pwa')({
       },
     },
     {
-      // El resto de la app (JS, CSS, la página en sí): se sirve de caché al instante
-      // y se actualiza en segundo plano cuando hay internet.
-      urlPattern: () => true,
+      // La página en sí (el HTML de cada pantalla): siempre intenta traer la versión
+      // más reciente primero. Si no hay internet, cae a la última que se guardó --
+      // así una pantalla ya visitada sigue abriendo offline, pero nunca se ve "vieja"
+      // cuando sí hay conexión.
+      urlPattern: ({ request }) => request.mode === 'navigate',
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'pages',
+        networkTimeoutSeconds: 4,
+        expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 * 30 },
+        cacheableResponse: { statuses: [0, 200] },
+      },
+    },
+    {
+      // Archivos estáticos de la app (JS, CSS, íconos): estos sí se sirven al
+      // instante desde caché, porque no cambian de contenido con cada visita.
+      urlPattern: ({ request }) =>
+        ['script', 'style', 'image', 'font'].includes(request.destination),
       handler: 'StaleWhileRevalidate',
       options: {
         cacheName: 'app-shell',
