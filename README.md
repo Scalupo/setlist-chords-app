@@ -50,3 +50,4 @@ Esto quedó fuera de este primer esqueleto a propósito, para priorizar validar 
 La `anon key` de Supabase es pública por diseño (vive en el navegador), y las políticas RLS
 del schema están abiertas a propósito para esta v1 sin cuentas de usuario — ver la nota
 correspondiente en `schema_supabase_acordes.sql` y en el documento de referencia.
+.
