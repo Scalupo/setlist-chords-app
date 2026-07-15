@@ -9,4 +9,11 @@ if (!url || !anonKey) {
   console.warn('Faltan NEXT_PUBLIC_SUPABASE_URL o NEXT_PUBLIC_SUPABASE_ANON_KEY en .env.local');
 }
 
-export const supabase = createClient(url, anonKey);
+export const supabase = createClient(url, anonKey, {
+  global: {
+    // Next.js intercepta fetch() y lo cachea por default en el servidor.
+    // Sin esto, Vercel podía guardar la primera respuesta de Supabase y
+    // seguir sirviéndola vieja en visitas futuras, sin volver a consultar.
+    fetch: (input, init) => fetch(input, { ...init, cache: 'no-store' }),
+  },
+});
