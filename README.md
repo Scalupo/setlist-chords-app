@@ -29,21 +29,30 @@ de abajo), tema claro/oscuro, y el toggle músico/vocalista.
 - `app/show/[id]/page.tsx` — modo show completo: drawer con auto-peek, transporte de tono en
   tiempo real (sin llamadas a red, es matemática pura sobre `lib/chords.ts`), swipe táctil,
   tema claro/oscuro, modo músico/vocalista.
+- `app/setlists/new`, `app/setlists/[id]/edit`, `app/setlists/[id]/agregar` — crear/editar
+  setlists, reordenar, quitar, buscar y agregar canciones, compartir por WhatsApp.
+- `app/canciones/nueva` — editor manual de canciones **+ botón "Buscar con IA"** que llama a
+  `app/api/generar-acordes` (función serverless) para generar un borrador de acordes por
+  sección, que revisas y editas antes de guardar.
 - `lib/chords.ts` — parseo y transporte de acordes, portado 1:1 del prototipo HTML.
-- `lib/queries.ts` — consultas a Supabase (setlists y sus versiones/secciones).
+- `lib/queries.ts` — consultas a Supabase (setlists, versiones, secciones, búsqueda).
+
+## Variables de entorno necesarias
+
+Además de las dos de Supabase, ahora se necesita:
+
+- `ANTHROPIC_API_KEY` — tu clave de la API de Anthropic (se saca en console.anthropic.com).
+  **Nunca** lleva el prefijo `NEXT_PUBLIC_` — así se queda solo en el servidor y nunca se expone
+  en el navegador. Agrégala tanto en tu `.env.local` (para probar en tu compu) como en las
+  Environment Variables de Vercel (para que funcione en producción).
 
 ## Qué falta portar (siguientes pasos)
 
-Esto quedó fuera de este primer esqueleto a propósito, para priorizar validar modo show:
-
-- Pantalla de crear/editar setlist (reordenar canciones, ID corto visible, compartir).
-- Buscador para agregar canción al setlist (con versiones diferenciadas).
-- Editor de canción (agregar secciones, insertar/quitar acordes, campo de letra).
-- Función serverless que llame a la API de Anthropic con el prompt de captura
-  (`prompt_captura_acordes.md`) — nunca poner la API key en código de cliente.
 - Manifest + service worker para que sea una PWA instalable y funcione offline de verdad
   (ahora mismo necesita internet porque lee de Supabase en cada carga).
-- `navigator.share()` para compartir el link del setlist por WhatsApp.
+- Selector de acorde guiado (chips en vez de texto libre) en el editor manual.
+- Reordenar canciones arrastrando (hoy es con flechas ↑↓).
+
 
 ## Nota de seguridad
 

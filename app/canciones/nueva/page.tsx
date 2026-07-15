@@ -3,8 +3,11 @@
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createCancionVersion, SeccionInput } from '@/lib/queries';
+import { chordToLabel } from '@/lib/chords';
 
 const TIPOS = ['intro', 'verso', 'precoro', 'coro', 'puente', 'solo', 'outro', 'otro'];
+
+type SeccionEditable = SeccionInput & { confianza?: 'alta' | 'media' | 'baja' };
 
 export default function NuevaCancionPage() {
   return (
@@ -23,9 +26,54 @@ function NuevaCancionForm() {
   const [artista, setArtista] = useState('');
   const [etiquetaVersion, setEtiquetaVersion] = useState('Estudio');
   const [tono, setTono] = useState('');
-  const [secciones, setSecciones] = useState<SeccionInput[]>([]);
+  const [secciones, setSecciones] = useState<SeccionEditable[]>([]);
   const [guardando, setGuardando] = useState(false);
+  const [buscandoIA, setBuscandoIA] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notaIA, setNotaIA] = useState<string | null>(null);
+
+  async function buscarConIA() {
+    if (!titulo.trim()) {
+      setError('Escribe al menos el título antes de buscar con IA.');
+      return;
+    }
+    setBuscandoIA(true);
+    setError(null);
+    setNotaIA(null);
+    try {
+      const res = await fetch('/api/generar-acordes', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ titulo, artista, version: etiquetaVersion }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'No se pudo generar el borrador con IA.');
+        return;
+      }
+      if (!data.encontrada) {
+        setNotaIA('La IA no encontró esta canción/versión. Captura los acordes manualmente abajo.');
+        return;
+      }
+      if (data.tono_original && !tono) setTono(data.tono_original);
+      const nuevasSecciones: SeccionEditable[] = (data.secciones || []).map((s: any) => ({
+        tipo: TIPOS.includes(s.tipo) ? s.tipo : 'otro',
+        etiqueta: s.etiqueta || s.tipo,
+        acordesTexto: (s.acordes || [])
+          .map((a: any) => chordToLabel({ raiz: a.raiz, calidad: a.calidad || '', bajo: a.bajo || null }))
+          .join(' '),
+        letra: '',
+        confianza: s.confianza,
+      }));
+      setSecciones(nuevasSecciones);
+      if (data.notas) setNotaIA(data.notas);
+    } catch {
+      setError('No se pudo contactar al servidor. Intenta de nuevo.');
+    } finally {
+      setBuscandoIA(false);
+    }
+  }
+
 
   function agregarSeccion() {
     setSecciones((s) => [...s, { tipo: 'verso', etiqueta: 'Verso', acordesTexto: '', letra: '' }]);
@@ -104,13 +152,32 @@ function NuevaCancionForm() {
         value={tono}
         onChange={(e) => setTono(e.target.value)}
         placeholder="G"
-        className="w-28 mb-5 px-3 py-2 rounded-lg border border-border bg-card"
+        className="w-28 mb-4 px-3 py-2 rounded-lg border border-border bg-card"
       />
+
+      <button
+        disabled={buscandoIA}
+        onClick={buscarConIA}
+        className="w-full mb-2 py-2.5 rounded-xl bg-accent text-white text-sm disabled:opacity-60"
+      >
+        {buscandoIA ? 'Buscando y generando acordes…' : '✨ Buscar con IA'}
+      </button>
+      <p className="text-xs text-muted mb-4">
+        Genera un borrador de acordes por sección. Revísalo abajo antes de guardar.
+      </p>
+
+      {notaIA && (
+        <div className="text-sm bg-chip rounded-lg p-3 mb-4 text-muted">{notaIA}</div>
+      )}
 
       <h2 className="text-sm font-medium mb-2">Secciones</h2>
       <div className="flex flex-col gap-3 mb-3">
         {secciones.map((s, i) => (
-          <div key={i} className="border border-border rounded-2xl p-3 bg-card">
+          <div
+            key={i}
+            className="border rounded-2xl p-3 bg-card"
+            style={{ borderColor: s.confianza === 'baja' ? '#c17a3a' : 'var(--border)' }}
+          >
             <div className="flex items-center gap-2 mb-2">
               <select
                 value={s.tipo}
@@ -123,6 +190,11 @@ function NuevaCancionForm() {
                   </option>
                 ))}
               </select>
+              {s.confianza === 'baja' && (
+                <span className="text-[11px] px-2 py-0.5 rounded-full bg-chip text-muted">
+                  revisar acordes
+                </span>
+              )}
               <button className="ml-auto text-red-600 text-sm" onClick={() => quitarSeccion(i)}>
                 ×
               </button>
