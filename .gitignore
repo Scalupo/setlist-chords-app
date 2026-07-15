@@ -2,3 +2,7 @@ node_modules
 .next
 .env.local
 .DS_Store
+public/sw.js
+public/workbox-*.js
+public/fallback-*.js
+tsconfig.tsbuildinfo

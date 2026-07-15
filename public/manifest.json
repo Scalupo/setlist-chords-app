@@ -1,0 +1,14 @@
+{
+  "name": "Acordes en vivo",
+  "short_name": "Acordes",
+  "description": "Setlists y acordes para músicos, listos para tocar en vivo.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#faf9f5",
+  "theme_color": "#3c3489",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

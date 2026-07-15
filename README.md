@@ -34,8 +34,28 @@ de abajo), tema claro/oscuro, y el toggle músico/vocalista.
 - `app/canciones/nueva` — editor manual de canciones **+ botón "Buscar con IA"** que llama a
   `app/api/generar-acordes` (función serverless) para generar un borrador de acordes por
   sección, que revisas y editas antes de guardar.
+- **PWA instalable y funciona offline**: `public/manifest.json` + service worker (generado
+  automáticamente en cada build por `next-pwa`, configurado en `next.config.js`). Estrategia:
+  los datos de Supabase se piden a la red primero, y si no hay internet se sirve la última
+  copia guardada — así una canción o setlist que ya abriste una vez sigue funcionando sin
+  conexión. El resto de la app (JS, CSS) se sirve al instante desde caché.
 - `lib/chords.ts` — parseo y transporte de acordes, portado 1:1 del prototipo HTML.
 - `lib/queries.ts` — consultas a Supabase (setlists, versiones, secciones, búsqueda).
+
+## Cómo probar que el offline funciona
+
+1. Abre la app con internet, entra a un setlist en modo show (esto lo guarda en caché).
+2. Activa el modo avión en tu celular.
+3. Cierra la app completamente y vuelve a abrirla (o recarga).
+4. El setlist debería seguir cargando con sus acordes, aunque no haya señal.
+
+Nota: la primera vez que abres cualquier canción/setlist SÍ necesita internet — el offline
+solo aplica a contenido que ya visitaste al menos una vez estando conectado.
+
+## Instalar la app en el celular (como ícono, no solo un link)
+
+- **Android/Chrome**: al entrar al sitio, aparece un banner o menú de tres puntos → "Instalar app" / "Agregar a pantalla de inicio".
+- **iPhone/Safari**: botón de compartir (el cuadro con flecha) → "Agregar a pantalla de inicio".
 
 ## Variables de entorno necesarias
 
@@ -48,8 +68,6 @@ Además de las dos de Supabase, ahora se necesita:
 
 ## Qué falta portar (siguientes pasos)
 
-- Manifest + service worker para que sea una PWA instalable y funcione offline de verdad
-  (ahora mismo necesita internet porque lee de Supabase en cada carga).
 - Selector de acorde guiado (chips en vez de texto libre) en el editor manual.
 - Reordenar canciones arrastrando (hoy es con flechas ↑↓).
 
@@ -59,4 +77,3 @@ Además de las dos de Supabase, ahora se necesita:
 La `anon key` de Supabase es pública por diseño (vive en el navegador), y las políticas RLS
 del schema están abiertas a propósito para esta v1 sin cuentas de usuario — ver la nota
 correspondiente en `schema_supabase_acordes.sql` y en el documento de referencia.
-.
