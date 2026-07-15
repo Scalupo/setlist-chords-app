@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
         max_tokens: 3000,
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: userMessage }],
-        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+        tools: [{ type: 'web_search_20260318', name: 'web_search' }],
       }),
     });
   } catch (e: any) {

@@ -48,7 +48,7 @@ function NuevaCancionForm() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || 'No se pudo generar el borrador con IA.');
+        setError(data.detail ? `${data.error}\n${data.detail}` : data.error || 'No se pudo generar el borrador con IA.');
         return;
       }
       if (!data.encontrada) {
@@ -231,7 +231,7 @@ function NuevaCancionForm() {
         + Agregar sección
       </button>
 
-      {error && <div className="text-sm text-red-600 mb-3">{error}</div>}
+      {error && <div className="text-sm text-red-600 mb-3 whitespace-pre-wrap break-words">{error}</div>}
 
       <button
         disabled={guardando}
