@@ -1,14 +1,24 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { Suspense, useEffect, useRef, useState } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Setlist, Version } from '@/lib/types';
 import { chordToLabel, parseChordToken, transposeChord } from '@/lib/chords';
 
 export default function ModoShowPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-center text-muted">Cargando…</div>}>
+      <ModoShowInner />
+    </Suspense>
+  );
+}
+
+function ModoShowInner() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const resumeVersionId = searchParams.get('resume');
 
   const [setlist, setSetlist] = useState<Setlist | null>(null);
   const [versions, setVersions] = useState<Version[]>([]);
@@ -57,6 +67,13 @@ export default function ModoShowPage() {
 
         setSetlist(sl as Setlist);
         setVersions(parsed);
+
+        // Si venimos de editar una canción específica, reanudamos justo ahí
+        // en vez de reiniciar en la primera del setlist.
+        if (resumeVersionId) {
+          const idx = parsed.findIndex((v) => v.id === resumeVersionId);
+          if (idx >= 0) setIndex(idx);
+        }
       } catch (err: any) {
         setError(err.message || 'No se pudo cargar el setlist');
       } finally {
@@ -64,6 +81,7 @@ export default function ModoShowPage() {
       }
     }
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   useEffect(() => {
@@ -176,7 +194,7 @@ export default function ModoShowPage() {
           <div className="ml-auto flex gap-2">
             <button
               className="w-8 h-8 rounded-full border border-border text-xs"
-              onClick={() => router.push(`/canciones/${version.id}/editar`)}
+              onClick={() => router.push(`/canciones/${version.id}/editar?setlistId=${id}&origen=show`)}
               title="Editar acordes (para ensayos)"
             >
               ✏️

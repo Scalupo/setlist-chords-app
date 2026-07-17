@@ -114,7 +114,7 @@ export default function EditarSetlistPage() {
                   key={v.id}
                   version={v}
                   index={i}
-                  onEditar={() => router.push(`/canciones/${v.id}/editar`)}
+                  onEditar={() => router.push(`/canciones/${v.id}/editar?setlistId=${id}&origen=setlist`)}
                   onQuitar={() => quitar(v.id)}
                 />
               ))}

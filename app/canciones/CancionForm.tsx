@@ -17,12 +17,26 @@ type SeccionEditable = SeccionInput & { confianza?: 'alta' | 'media' | 'baja' };
 export default function CancionForm({
   versionIdToEdit,
   setlistId,
+  origen,
 }: {
   versionIdToEdit?: string;
   setlistId?: string;
+  origen?: 'show' | 'setlist' | null;
 }) {
   const router = useRouter();
   const modoEdicion = Boolean(versionIdToEdit);
+
+  function volverAqui() {
+    if (modoEdicion && origen === 'show' && setlistId) {
+      router.push(`/show/${setlistId}?resume=${versionIdToEdit}`);
+    } else if (modoEdicion && origen === 'setlist' && setlistId) {
+      router.push(`/setlists/${setlistId}/edit`);
+    } else if (modoEdicion) {
+      router.push('/canciones');
+    } else {
+      router.push(setlistId ? `/setlists/${setlistId}/agregar` : '/');
+    }
+  }
 
   const [cargando, setCargando] = useState(modoEdicion);
   const [titulo, setTitulo] = useState('');
@@ -135,7 +149,7 @@ export default function CancionForm({
           tono: tono.trim(),
           secciones,
         });
-        router.push('/canciones');
+        volverAqui();
       } else {
         await createCancionVersion({
           titulo: titulo.trim(),
@@ -158,12 +172,7 @@ export default function CancionForm({
   return (
     <main className="max-w-md mx-auto p-4 pb-10">
       <div className="flex items-center gap-2 mb-4">
-        <button
-          className="text-lg"
-          onClick={() =>
-            router.push(modoEdicion ? '/canciones' : setlistId ? `/setlists/${setlistId}/agregar` : '/')
-          }
-        >
+        <button className="text-lg" onClick={volverAqui}>
           ←
         </button>
         <h1 className="text-lg font-semibold">{modoEdicion ? 'Editar canción' : 'Nueva canción'}</h1>
