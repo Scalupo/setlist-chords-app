@@ -126,67 +126,77 @@ export default function ModoShowPage() {
 
   return (
     <div
-      className="max-w-md mx-auto min-h-screen flex flex-col p-5 select-none"
+      className="max-w-md mx-auto flex flex-col p-5 select-none"
+      style={{ height: '100dvh' }}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
-      {/* Cajón deslizable */}
-      <button
-        className="flex justify-center mb-1"
-        aria-label="Mostrar u ocultar setlist y tono"
-        onClick={() => setDrawerOpen((o) => !o)}
-      >
-        <span className="w-9 h-1 rounded-full bg-border block" />
-      </button>
-      <div
-        className="overflow-hidden text-xs text-muted transition-all"
-        style={{ maxHeight: drawerOpen ? 80 : 0 }}
-      >
-        <div className="py-1">
-          {setlist.nombre} · {index + 1}/{versions.length}
+      {/* Cajón deslizable (fijo, no scrollea) */}
+      <div className="flex-shrink-0">
+        <button
+          className="flex justify-center w-full mb-1"
+          aria-label="Mostrar u ocultar setlist y tono"
+          onClick={() => setDrawerOpen((o) => !o)}
+        >
+          <span className="w-9 h-1 rounded-full bg-border block" />
+        </button>
+        <div
+          className="overflow-hidden text-xs text-muted transition-all"
+          style={{ maxHeight: drawerOpen ? 80 : 0 }}
+        >
+          <div className="py-1">
+            {setlist.nombre} · {index + 1}/{versions.length}
+          </div>
+          <div className="flex items-center gap-2 pb-2">
+            <button
+              className="w-7 h-7 rounded-full border border-border"
+              onClick={() => setSemitones((s) => s - 1)}
+            >
+              −
+            </button>
+            <span>
+              Tono: {tonoActual}
+              {semitones !== 0 ? ` (${semitones > 0 ? '+' : ''}${semitones})` : ''}
+            </span>
+            <button
+              className="w-7 h-7 rounded-full border border-border"
+              onClick={() => setSemitones((s) => s + 1)}
+            >
+              +
+            </button>
+            <span className="ml-auto font-medium text-text">Setlist {setlist.id_corto}</span>
+          </div>
         </div>
-        <div className="flex items-center gap-2 pb-2">
-          <button
-            className="w-7 h-7 rounded-full border border-border"
-            onClick={() => setSemitones((s) => s - 1)}
-          >
-            −
-          </button>
-          <span>
-            Tono: {tonoActual}
-            {semitones !== 0 ? ` (${semitones > 0 ? '+' : ''}${semitones})` : ''}
-          </span>
-          <button
-            className="w-7 h-7 rounded-full border border-border"
-            onClick={() => setSemitones((s) => s + 1)}
-          >
-            +
-          </button>
-          <span className="ml-auto font-medium text-text">Setlist {setlist.id_corto}</span>
+
+        {/* Encabezado de la canción */}
+        <div className="flex items-baseline gap-2 flex-wrap pb-3 mb-3 border-b border-border">
+          <span className="text-xl font-semibold">{version.canciones.titulo}</span>
+          <span className="text-sm text-muted">{version.canciones.artista}</span>
+          <span className="text-xs text-muted opacity-75">· {version.etiqueta_version}</span>
+          <div className="ml-auto flex gap-2">
+            <button
+              className="w-8 h-8 rounded-full border border-border text-xs"
+              onClick={() => router.push(`/canciones/${version.id}/editar`)}
+              title="Editar acordes (para ensayos)"
+            >
+              ✏️
+            </button>
+            <button
+              className="w-8 h-8 rounded-full border border-border text-xs"
+              onClick={() => setModoVocalista((m) => !m)}
+              title="Modo músico / vocalista"
+            >
+              {modoVocalista ? 'V' : 'M'}
+            </button>
+            <button className="w-8 h-8 rounded-full border border-border text-xs" onClick={toggleTema}>
+              ◐
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Encabezado de la canción */}
-      <div className="flex items-baseline gap-2 flex-wrap pb-3 mb-3 border-b border-border">
-        <span className="text-xl font-semibold">{version.canciones.titulo}</span>
-        <span className="text-sm text-muted">{version.canciones.artista}</span>
-        <span className="text-xs text-muted opacity-75">· {version.etiqueta_version}</span>
-        <div className="ml-auto flex gap-2">
-          <button
-            className="w-8 h-8 rounded-full border border-border text-xs"
-            onClick={() => setModoVocalista((m) => !m)}
-            title="Modo músico / vocalista"
-          >
-            {modoVocalista ? 'V' : 'M'}
-          </button>
-          <button className="w-8 h-8 rounded-full border border-border text-xs" onClick={toggleTema}>
-            ◐
-          </button>
-        </div>
-      </div>
-
-      {/* Secciones */}
-      <div className="flex-1 flex flex-col gap-4">
+      {/* Secciones: esta es la única parte que scrollea */}
+      <div className="flex-1 overflow-y-auto flex flex-col gap-4 min-h-0">
         {version.secciones.map((s) => (
           <div key={s.id}>
             <div className="text-[11px] tracking-wide uppercase text-muted mb-2">{s.etiqueta}</div>
@@ -207,23 +217,25 @@ export default function ModoShowPage() {
         ))}
       </div>
 
-      {/* Navegación */}
-      <div className="flex justify-center gap-1 pt-3">
-        {versions.map((_, i) => (
-          <span
-            key={i}
-            className="w-1.5 h-1.5 rounded-full"
-            style={{ background: i === index ? 'currentColor' : 'var(--border)' }}
-          />
-        ))}
-      </div>
-      <div className="flex justify-between items-center pt-2 text-xs text-muted">
-        <button onClick={() => cambiarCancion(-1)} disabled={!prevVersion}>
-          ← {prevVersion?.canciones.titulo || ''}
-        </button>
-        <button onClick={() => cambiarCancion(1)} disabled={!nextVersion}>
-          {nextVersion?.canciones.titulo || ''} →
-        </button>
+      {/* Navegación (fija, no scrollea) */}
+      <div className="flex-shrink-0">
+        <div className="flex justify-center gap-1 pt-3">
+          {versions.map((_, i) => (
+            <span
+              key={i}
+              className="w-1.5 h-1.5 rounded-full"
+              style={{ background: i === index ? 'currentColor' : 'var(--border)' }}
+            />
+          ))}
+        </div>
+        <div className="flex justify-between items-center pt-2 text-xs text-muted">
+          <button onClick={() => cambiarCancion(-1)} disabled={!prevVersion}>
+            ← {prevVersion?.canciones.titulo || ''}
+          </button>
+          <button onClick={() => cambiarCancion(1)} disabled={!nextVersion}>
+            {nextVersion?.canciones.titulo || ''} →
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -2,8 +2,23 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable';
 import { getSetlist, getSetlistVersions, reorderSetlist, removeFromSetlist, updateSetlistNombre } from '@/lib/queries';
 import { Setlist, Version } from '@/lib/types';
+import SortableSongRow from './SortableSongRow';
 
 export default function EditarSetlistPage() {
   const { id } = useParams<{ id: string }>();
@@ -12,6 +27,11 @@ export default function EditarSetlistPage() {
   const [setlist, setSetlist] = useState<Setlist | null>(null);
   const [versions, setVersions] = useState<Version[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 8 } })
+  );
 
   const load = useCallback(async () => {
     const sl = await getSetlist(id);
@@ -30,11 +50,12 @@ export default function EditarSetlistPage() {
     await updateSetlistNombre(id, nombre);
   }
 
-  async function mover(i: number, dir: -1 | 1) {
-    const j = i + dir;
-    if (j < 0 || j >= versions.length) return;
-    const nuevo = [...versions];
-    [nuevo[i], nuevo[j]] = [nuevo[j], nuevo[i]];
+  async function onDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = versions.findIndex((v) => v.id === active.id);
+    const newIndex = versions.findIndex((v) => v.id === over.id);
+    const nuevo = arrayMove(versions, oldIndex, newIndex);
     setVersions(nuevo);
     await reorderSetlist(id, nuevo.map((v) => v.id));
   }
@@ -85,39 +106,21 @@ export default function EditarSetlistPage() {
           <div className="text-sm text-muted py-3">Sin canciones todavía.</div>
         )}
 
-        <div className="flex flex-col">
-          {versions.map((v, i) => (
-            <div key={v.id} className="flex items-center gap-2 py-2 border-b border-border last:border-none">
-              <span className="text-xs text-muted w-4">{i + 1}.</span>
-              <div className="flex-1">
-                <strong className="text-sm">{v.canciones.titulo}</strong>{' '}
-                <span className="text-xs text-muted">{v.canciones.artista}</span>{' '}
-                <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-chip text-muted">
-                  {v.etiqueta_version}
-                </span>
-              </div>
-              <button
-                className="w-7 h-7 rounded-full border border-border text-xs"
-                onClick={() => router.push(`/canciones/${v.id}/editar`)}
-                title="Editar acordes de esta canción"
-              >
-                ✏️
-              </button>
-              <button className="w-7 h-7 rounded-full border border-border text-xs" onClick={() => mover(i, -1)}>
-                ↑
-              </button>
-              <button className="w-7 h-7 rounded-full border border-border text-xs" onClick={() => mover(i, 1)}>
-                ↓
-              </button>
-              <button
-                className="w-7 h-7 rounded-full border border-border text-xs text-red-600"
-                onClick={() => quitar(v.id)}
-              >
-                ×
-              </button>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+          <SortableContext items={versions.map((v) => v.id)} strategy={verticalListSortingStrategy}>
+            <div className="flex flex-col">
+              {versions.map((v, i) => (
+                <SortableSongRow
+                  key={v.id}
+                  version={v}
+                  index={i}
+                  onEditar={() => router.push(`/canciones/${v.id}/editar`)}
+                  onQuitar={() => quitar(v.id)}
+                />
+              ))}
             </div>
-          ))}
-        </div>
+          </SortableContext>
+        </DndContext>
 
         <button
           className="w-full mt-3 py-2 rounded-xl border border-dashed border-border text-sm"
