@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { Setlist, Version } from '@/lib/types';
 import { chordToLabel, parseChordToken, transposeChord } from '@/lib/chords';
@@ -193,7 +194,7 @@ function ModoShowInner() {
         </button>
         <div
           className="overflow-hidden text-xs text-muted transition-all"
-          style={{ maxHeight: drawerOpen ? 80 : 0 }}
+          style={{ maxHeight: drawerOpen ? 116 : 0 }}
         >
           <div className="py-1">
             {setlist.nombre} · {index + 1}/{versions.length}
@@ -226,6 +227,14 @@ function ModoShowInner() {
             )}
             {tonoGuardadoMsg && <span className="text-[11px] text-muted">✓ Guardado</span>}
             <span className="ml-auto font-medium text-text">Setlist {setlist.id_corto}</span>
+          </div>
+          <div className="flex items-center gap-4 pt-2 mt-1 border-t border-border">
+            <Link href="/" className="flex items-center gap-1.5">
+              🎵 Setlists
+            </Link>
+            <Link href="/canciones" className="flex items-center gap-1.5">
+              🎸 Canciones
+            </Link>
           </div>
         </div>
 
