@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import { Setlist, SetlistItemRow, Version } from './types';
-import { parseChordToken } from './chords';
+import { parseChordToken, transposeChord, chordToLabel } from './chords';
 
 export async function getSetlists(): Promise<Setlist[]> {
   const { data, error } = await supabase
@@ -218,6 +218,38 @@ export async function getVersionCompleta(versionId: string): Promise<Version | n
   if (error || !data) return null;
   const v = data as unknown as Version;
   return { ...v, secciones: [...v.secciones].sort((a, b) => a.orden - b.orden) };
+}
+
+/**
+ * Transporta de forma PERMANENTE los acordes guardados de una versión (reescribe
+ * cada acorde en la base de datos, no solo la vista) y actualiza su tono base.
+ * Se usa desde el botón "Guardar este tono" en modo show.
+ */
+export async function guardarTransposicion(
+  versionId: string,
+  semitones: number,
+  tonoActual: string | null
+): Promise<{ nuevoTono: string | null }> {
+  if (semitones === 0) return { nuevoTono: tonoActual };
+
+  const { data: secciones, error: e1 } = await supabase
+    .from('secciones')
+    .select('id, acordes')
+    .eq('version_id', versionId);
+  if (e1) throw e1;
+
+  await Promise.all(
+    (secciones || []).map((sec: any) => {
+      const nuevosAcordes = (sec.acordes || []).map((a: any) => transposeChord(a, semitones));
+      return supabase.from('secciones').update({ acordes: nuevosAcordes }).eq('id', sec.id);
+    })
+  );
+
+  const nuevoTono = tonoActual ? chordToLabel(transposeChord(parseChordToken(tonoActual), semitones)) : null;
+  const { error: e2 } = await supabase.from('versiones').update({ tono_original: nuevoTono }).eq('id', versionId);
+  if (e2) throw e2;
+
+  return { nuevoTono };
 }
 
 /** Actualiza el título/artista, los datos de la versión, y reemplaza sus secciones. */

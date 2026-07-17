@@ -3,16 +3,45 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
+import {
   createCancionVersion,
   updateCancionVersion,
   getVersionCompleta,
   SeccionInput,
 } from '@/lib/queries';
-import { chordToLabel } from '@/lib/chords';
+import { chordToLabel, parseChordToken, transposeChord } from '@/lib/chords';
+import SortableSeccionCard, { SeccionEditable } from './SortableSeccionCard';
 
 const TIPOS = ['intro', 'verso', 'precoro', 'coro', 'puente', 'solo', 'outro', 'otro'];
 
-type SeccionEditable = SeccionInput & { confianza?: 'alta' | 'media' | 'baja' };
+let contadorId = 0;
+function generarKey() {
+  contadorId += 1;
+  return `sec-${contadorId}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+function InsertarAqui({ onClick }: { onClick: () => void }) {
+  return (
+    <div className="flex justify-center py-1">
+      <button
+        onClick={onClick}
+        className="w-6 h-6 rounded-full border border-dashed border-border text-muted text-sm flex items-center justify-center hover:bg-chip"
+        title="Insertar sección aquí"
+      >
+        +
+      </button>
+    </div>
+  );
+}
 
 export default function CancionForm({
   versionIdToEdit,
@@ -49,6 +78,11 @@ export default function CancionForm({
   const [error, setError] = useState<string | null>(null);
   const [notaIA, setNotaIA] = useState<string | null>(null);
 
+  const seccionSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 8 } })
+  );
+
   useEffect(() => {
     if (!versionIdToEdit) return;
     getVersionCompleta(versionIdToEdit).then((v) => {
@@ -63,6 +97,7 @@ export default function CancionForm({
       setTono(v.tono_original || '');
       setSecciones(
         v.secciones.map((s) => ({
+          _key: generarKey(),
           tipo: s.tipo,
           etiqueta: s.etiqueta,
           acordesTexto: s.acordes.map((a) => chordToLabel(a)).join(' '),
@@ -102,6 +137,7 @@ export default function CancionForm({
       }
       if (data.tono_original && !tono) setTono(data.tono_original);
       const nuevasSecciones: SeccionEditable[] = (data.secciones || []).map((s: any) => ({
+        _key: generarKey(),
         tipo: TIPOS.includes(s.tipo) ? s.tipo : 'otro',
         etiqueta: s.etiqueta || s.tipo,
         acordesTexto: (s.acordes || [])
@@ -124,13 +160,44 @@ export default function CancionForm({
   }
 
   function agregarSeccion() {
-    setSecciones((s) => [...s, { tipo: 'verso', etiqueta: 'Verso', acordesTexto: '', letra: '' }]);
+    setSecciones((s) => [...s, { _key: generarKey(), tipo: 'verso', etiqueta: 'Verso', acordesTexto: '', letra: '' }]);
   }
-  function quitarSeccion(i: number) {
-    setSecciones((s) => s.filter((_, idx) => idx !== i));
+  function insertarSeccionEn(posicion: number) {
+    setSecciones((s) => {
+      const copia = [...s];
+      copia.splice(posicion, 0, { _key: generarKey(), tipo: 'verso', etiqueta: 'Verso', acordesTexto: '', letra: '' });
+      return copia;
+    });
   }
-  function actualizarSeccion(i: number, campo: keyof SeccionInput, valor: string) {
-    setSecciones((s) => s.map((sec, idx) => (idx === i ? { ...sec, [campo]: valor } : sec)));
+  function quitarSeccion(key: string) {
+    setSecciones((s) => s.filter((sec) => sec._key !== key));
+  }
+  function actualizarSeccion(key: string, campo: keyof SeccionInput, valor: string) {
+    setSecciones((s) => s.map((sec) => (sec._key === key ? { ...sec, [campo]: valor } : sec)));
+  }
+  function transportarFormulario(delta: number) {
+    setTono((t) => (t.trim() ? chordToLabel(transposeChord(parseChordToken(t.trim()), delta)) : t));
+    setSecciones((s) =>
+      s.map((sec) => ({
+        ...sec,
+        acordesTexto: sec.acordesTexto
+          .trim()
+          .split(/\s+/)
+          .filter(Boolean)
+          .map((tok) => chordToLabel(transposeChord(parseChordToken(tok), delta)))
+          .join(' '),
+      }))
+    );
+  }
+
+  function onSeccionDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setSecciones((prev) => {
+      const oldIndex = prev.findIndex((s) => s._key === active.id);
+      const newIndex = prev.findIndex((s) => s._key === over.id);
+      return arrayMove(prev, oldIndex, newIndex);
+    });
   }
 
   async function guardar() {
@@ -206,12 +273,29 @@ export default function CancionForm({
       </div>
 
       <label className="block text-xs text-muted mb-1">Tono</label>
-      <input
-        value={tono}
-        onChange={(e) => setTono(e.target.value)}
-        placeholder="G"
-        className="w-28 mb-4 px-3 py-2 rounded-lg border border-border bg-card"
-      />
+      <div className="flex items-center gap-2 mb-4">
+        <input
+          value={tono}
+          onChange={(e) => setTono(e.target.value)}
+          placeholder="G"
+          className="w-28 px-3 py-2 rounded-lg border border-border bg-card"
+        />
+        <button
+          className="w-8 h-8 rounded-full border border-border text-sm"
+          onClick={() => transportarFormulario(-1)}
+          title="Transportar toda la canción un semitono abajo"
+        >
+          −
+        </button>
+        <button
+          className="w-8 h-8 rounded-full border border-border text-sm"
+          onClick={() => transportarFormulario(1)}
+          title="Transportar toda la canción un semitono arriba"
+        >
+          +
+        </button>
+        <span className="text-xs text-muted">transportar todo</span>
+      </div>
 
       <button
         disabled={buscandoIA}
@@ -238,62 +322,33 @@ export default function CancionForm({
       {notaIA && <div className="text-sm bg-chip rounded-lg p-3 mb-4 text-muted">{notaIA}</div>}
 
       <h2 className="text-sm font-medium mb-2">Secciones</h2>
-      <div className="flex flex-col gap-3 mb-3">
-        {secciones.map((s, i) => (
-          <div
-            key={i}
-            className="border rounded-2xl p-3 bg-card"
-            style={{ borderColor: s.confianza === 'baja' ? '#c17a3a' : 'var(--border)' }}
-          >
-            <div className="flex items-center gap-2 mb-2">
-              <select
-                value={s.tipo}
-                onChange={(e) => actualizarSeccion(i, 'tipo', e.target.value)}
-                className="px-2 py-1 rounded-lg border border-border bg-bg text-sm"
-              >
-                {TIPOS.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-              {s.confianza === 'baja' && (
-                <span className="text-[11px] px-2 py-0.5 rounded-full bg-chip text-muted">revisar acordes</span>
-              )}
-              <button className="ml-auto text-red-600 text-sm" onClick={() => quitarSeccion(i)}>
-                ×
-              </button>
-            </div>
-            <label className="block text-xs text-muted mb-1">Etiqueta</label>
-            <input
-              value={s.etiqueta}
-              onChange={(e) => actualizarSeccion(i, 'etiqueta', e.target.value)}
-              className="w-full mb-2 px-3 py-2 rounded-lg border border-border bg-bg text-sm"
-            />
-            <label className="block text-xs text-muted mb-1">
-              Acordes (separados por espacio, ej. G Em Cadd9 D)
-            </label>
-            <input
-              value={s.acordesTexto}
-              onChange={(e) => actualizarSeccion(i, 'acordesTexto', e.target.value)}
-              className="w-full mb-2 px-3 py-2 rounded-lg border border-border bg-bg text-sm"
-            />
-            <label className="block text-xs text-muted mb-1">Letra (opcional, modo vocalista)</label>
-            <textarea
-              value={s.letra}
-              onChange={(e) => actualizarSeccion(i, 'letra', e.target.value)}
-              rows={2}
-              className="w-full px-3 py-2 rounded-lg border border-border bg-bg text-sm"
-            />
+      <p className="text-xs text-muted mb-2">
+        Toca el "+" para insertar una sección justo ahí, o arrastra el ⠿ para reordenar.
+      </p>
+
+      <DndContext sensors={seccionSensors} collisionDetection={closestCenter} onDragEnd={onSeccionDragEnd}>
+        <SortableContext items={secciones.map((s) => s._key)} strategy={verticalListSortingStrategy}>
+          <div className="flex flex-col mb-3">
+            <InsertarAqui onClick={() => insertarSeccionEn(0)} />
+            {secciones.map((s, i) => (
+              <div key={s._key}>
+                <SortableSeccionCard
+                  seccion={s}
+                  onCampo={(campo, valor) => actualizarSeccion(s._key, campo, valor)}
+                  onQuitar={() => quitarSeccion(s._key)}
+                />
+                <InsertarAqui onClick={() => insertarSeccionEn(i + 1)} />
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </SortableContext>
+      </DndContext>
 
       <button
         className="w-full mb-5 py-2 rounded-xl border border-dashed border-border text-sm"
         onClick={agregarSeccion}
       >
-        + Agregar sección
+        + Agregar sección al final
       </button>
 
       {error && <div className="text-sm text-red-600 mb-3 whitespace-pre-wrap break-words">{error}</div>}

@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Setlist, Version } from '@/lib/types';
 import { chordToLabel, parseChordToken, transposeChord } from '@/lib/chords';
+import { guardarTransposicion } from '@/lib/queries';
 
 export default function ModoShowPage() {
   return (
@@ -30,6 +31,8 @@ function ModoShowInner() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [modoVocalista, setModoVocalista] = useState(false);
   const [dark, setDark] = useState(false);
+  const [guardandoTono, setGuardandoTono] = useState(false);
+  const [tonoGuardadoMsg, setTonoGuardadoMsg] = useState(false);
 
   const touchStartX = useRef<number | null>(null);
   const peekTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -113,6 +116,36 @@ function ModoShowInner() {
     document.documentElement.classList.toggle('dark', next);
   }
 
+  async function guardarTonoActual() {
+    if (semitones === 0) return;
+    setGuardandoTono(true);
+    try {
+      const v = versions[index];
+      const { nuevoTono } = await guardarTransposicion(v.id, semitones, v.tono_original);
+      setVersions((prev) =>
+        prev.map((ver, i) =>
+          i === index
+            ? {
+                ...ver,
+                tono_original: nuevoTono,
+                secciones: ver.secciones.map((s) => ({
+                  ...s,
+                  acordes: s.acordes.map((a) => transposeChord(a, semitones)),
+                })),
+              }
+            : ver
+        )
+      );
+      setSemitones(0);
+      setTonoGuardadoMsg(true);
+      setTimeout(() => setTonoGuardadoMsg(false), 2000);
+    } catch {
+      alert('No se pudo guardar el tono. Intenta de nuevo.');
+    } finally {
+      setGuardandoTono(false);
+    }
+  }
+
   function onTouchStart(e: React.TouchEvent) {
     touchStartX.current = e.touches[0].clientX;
   }
@@ -165,7 +198,7 @@ function ModoShowInner() {
           <div className="py-1">
             {setlist.nombre} · {index + 1}/{versions.length}
           </div>
-          <div className="flex items-center gap-2 pb-2">
+          <div className="flex items-center gap-2 pb-2 flex-wrap">
             <button
               className="w-7 h-7 rounded-full border border-border"
               onClick={() => setSemitones((s) => s - 1)}
@@ -182,6 +215,16 @@ function ModoShowInner() {
             >
               +
             </button>
+            {semitones !== 0 && (
+              <button
+                disabled={guardandoTono}
+                onClick={guardarTonoActual}
+                className="text-[11px] px-2 py-1 rounded-full bg-accent text-white disabled:opacity-60"
+              >
+                {guardandoTono ? 'Guardando…' : 'Guardar este tono'}
+              </button>
+            )}
+            {tonoGuardadoMsg && <span className="text-[11px] text-muted">✓ Guardado</span>}
             <span className="ml-auto font-medium text-text">Setlist {setlist.id_corto}</span>
           </div>
         </div>
