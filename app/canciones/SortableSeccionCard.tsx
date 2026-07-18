@@ -70,7 +70,7 @@ export default function SortableSeccionCard({
         className="w-full mb-2 px-3 py-2 rounded-lg border border-border bg-bg text-sm"
       />
       <label className="block text-xs text-muted mb-1">
-        Acordes (separados por espacio, ej. G Em Cadd9 D)
+        Acordes (ej. "C   Bb E F" — más espacios entre dos = el primero dura más)
       </label>
       <input
         value={seccion.acordesTexto}

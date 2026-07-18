@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import { Setlist, SetlistItemRow, Version } from './types';
-import { parseChordToken, transposeChord, chordToLabel } from './chords';
+import { parseChordToken, transposeChord, chordToLabel, parseAcordesLinea } from './chords';
 
 export async function getSetlists(): Promise<Setlist[]> {
   const { data, error } = await supabase
@@ -180,11 +180,7 @@ export async function createCancionVersion(input: {
     tipo: s.tipo,
     etiqueta: s.etiqueta,
     orden: i + 1,
-    acordes: s.acordesTexto
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean)
-      .map((tok) => parseChordToken(tok)),
+    acordes: parseAcordesLinea(s.acordesTexto),
     letra: s.letra || null,
   }));
   if (filas.length > 0) {
@@ -290,11 +286,7 @@ export async function updateCancionVersion(
     tipo: s.tipo,
     etiqueta: s.etiqueta,
     orden: i + 1,
-    acordes: s.acordesTexto
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean)
-      .map((tok) => parseChordToken(tok)),
+    acordes: parseAcordesLinea(s.acordesTexto),
     letra: s.letra || null,
   }));
   if (filas.length > 0) {

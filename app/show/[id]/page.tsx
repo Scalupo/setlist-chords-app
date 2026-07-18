@@ -29,7 +29,8 @@ function ModoShowInner() {
 
   const [index, setIndex] = useState(0);
   const [semitones, setSemitones] = useState(0);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [navDrawerOpen, setNavDrawerOpen] = useState(false);
+  const [tonoDrawerOpen, setTonoDrawerOpen] = useState(false);
   const [modoVocalista, setModoVocalista] = useState(false);
   const [dark, setDark] = useState(false);
   const [guardandoTono, setGuardandoTono] = useState(false);
@@ -92,14 +93,20 @@ function ModoShowInner() {
     if (document.documentElement.classList.contains('dark')) setDark(true);
   }, []);
 
-  function peekDrawer() {
-    setDrawerOpen(true);
+  // Al cambiar de canción, mostramos brevemente ambos paneles (navegación y
+  // tono) para confirmar de un vistazo dónde estás, y luego se cierran solos.
+  function peekDrawers() {
+    setNavDrawerOpen(true);
+    setTonoDrawerOpen(true);
     if (peekTimer.current) clearTimeout(peekTimer.current);
-    peekTimer.current = setTimeout(() => setDrawerOpen(false), 2500);
+    peekTimer.current = setTimeout(() => {
+      setNavDrawerOpen(false);
+      setTonoDrawerOpen(false);
+    }, 2500);
   }
 
   useEffect(() => {
-    if (versions.length > 0) peekDrawer();
+    if (versions.length > 0) peekDrawers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [versions.length]);
 
@@ -108,7 +115,7 @@ function ModoShowInner() {
     if (next < 0 || next >= versions.length) return;
     setIndex(next);
     setSemitones(0);
-    peekDrawer();
+    peekDrawers();
   }
 
   function toggleTema() {
@@ -183,22 +190,75 @@ function ModoShowInner() {
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
-      {/* Cajón deslizable (fijo, no scrollea) */}
       <div className="flex-shrink-0">
+        {/* Manija: abre/cierra el panel de navegación (Setlists / ID / Canciones) */}
         <button
           className="flex justify-center w-full mb-1"
-          aria-label="Mostrar u ocultar setlist y tono"
-          onClick={() => setDrawerOpen((o) => !o)}
+          aria-label="Mostrar u ocultar navegación"
+          onClick={() => setNavDrawerOpen((o) => !o)}
         >
           <span className="w-9 h-1 rounded-full bg-border block" />
         </button>
         <div
-          className="overflow-hidden text-xs text-muted transition-all"
-          style={{ maxHeight: drawerOpen ? 116 : 0 }}
+          className="overflow-hidden transition-all"
+          style={{ maxHeight: navDrawerOpen ? 60 : 0 }}
         >
-          <div className="py-1">
-            {setlist.nombre} · {index + 1}/{versions.length}
+          <div className="flex items-center gap-2 pb-3">
+            <Link
+              href="/"
+              className="flex-1 text-center py-2 rounded-xl border border-border text-xs font-medium"
+            >
+              Setlists
+            </Link>
+            <span className="text-xs font-semibold px-3 py-2 rounded-xl bg-chip text-muted whitespace-nowrap">
+              {setlist.id_corto}
+            </span>
+            <Link
+              href="/canciones"
+              className="flex-1 text-center py-2 rounded-xl border border-border text-xs font-medium"
+            >
+              Canciones
+            </Link>
           </div>
+        </div>
+
+        {/* Encabezado de la canción: tocarlo abre/cierra el panel de tono */}
+        <div className="flex items-center gap-2 pb-1">
+          <button
+            className="flex items-baseline gap-2 flex-wrap text-left flex-1 min-w-0"
+            onClick={() => setTonoDrawerOpen((o) => !o)}
+            aria-label="Mostrar u ocultar tono"
+          >
+            <span className="text-xl font-semibold truncate">{version.canciones.titulo}</span>
+            <span className="text-sm text-muted truncate">{version.canciones.artista}</span>
+            <span className="text-xs text-muted opacity-75 flex-shrink-0">· {version.etiqueta_version}</span>
+            <span className="text-muted text-xs flex-shrink-0">{tonoDrawerOpen ? '▲' : '▼'}</span>
+          </button>
+          <div className="flex gap-2 flex-shrink-0">
+            <button
+              className="w-8 h-8 rounded-full border border-border text-xs"
+              onClick={() => router.push(`/canciones/${version.id}/editar?setlistId=${id}&origen=show`)}
+              title="Editar acordes (para ensayos)"
+            >
+              ✏️
+            </button>
+            <button
+              className="w-8 h-8 rounded-full border border-border text-xs"
+              onClick={() => setModoVocalista((m) => !m)}
+              title="Modo músico / vocalista"
+            >
+              {modoVocalista ? 'V' : 'M'}
+            </button>
+            <button className="w-8 h-8 rounded-full border border-border text-xs" onClick={toggleTema}>
+              ◐
+            </button>
+          </div>
+        </div>
+
+        <div
+          className="overflow-hidden text-xs text-muted transition-all"
+          style={{ maxHeight: tonoDrawerOpen ? 48 : 0 }}
+        >
           <div className="flex items-center gap-2 pb-2 flex-wrap">
             <button
               className="w-7 h-7 rounded-full border border-border"
@@ -226,43 +286,10 @@ function ModoShowInner() {
               </button>
             )}
             {tonoGuardadoMsg && <span className="text-[11px] text-muted">✓ Guardado</span>}
-            <span className="ml-auto font-medium text-text">Setlist {setlist.id_corto}</span>
-          </div>
-          <div className="flex items-center gap-4 pt-2 mt-1 border-t border-border">
-            <Link href="/" className="flex items-center gap-1.5">
-              🎵 Setlists
-            </Link>
-            <Link href="/canciones" className="flex items-center gap-1.5">
-              🎸 Canciones
-            </Link>
           </div>
         </div>
 
-        {/* Encabezado de la canción */}
-        <div className="flex items-baseline gap-2 flex-wrap pb-3 mb-3 border-b border-border">
-          <span className="text-xl font-semibold">{version.canciones.titulo}</span>
-          <span className="text-sm text-muted">{version.canciones.artista}</span>
-          <span className="text-xs text-muted opacity-75">· {version.etiqueta_version}</span>
-          <div className="ml-auto flex gap-2">
-            <button
-              className="w-8 h-8 rounded-full border border-border text-xs"
-              onClick={() => router.push(`/canciones/${version.id}/editar?setlistId=${id}&origen=show`)}
-              title="Editar acordes (para ensayos)"
-            >
-              ✏️
-            </button>
-            <button
-              className="w-8 h-8 rounded-full border border-border text-xs"
-              onClick={() => setModoVocalista((m) => !m)}
-              title="Modo músico / vocalista"
-            >
-              {modoVocalista ? 'V' : 'M'}
-            </button>
-            <button className="w-8 h-8 rounded-full border border-border text-xs" onClick={toggleTema}>
-              ◐
-            </button>
-          </div>
-        </div>
+        <div className="border-b border-border mb-3" />
       </div>
 
       {/* Secciones: esta es la única parte que scrollea */}
@@ -277,7 +304,11 @@ function ModoShowInner() {
             ) : (
               <div className="flex gap-2 flex-wrap">
                 {s.acordes.map((a, i) => (
-                  <span key={i} className="text-[22px] font-semibold px-3 py-1 rounded-lg bg-chip">
+                  <span
+                    key={i}
+                    className="text-[22px] font-semibold px-3 py-1 rounded-lg bg-chip text-center"
+                    style={{ minWidth: `${20 + (Math.min(a.duracion || 1, 5) - 1) * 22}px` }}
+                  >
                     {chordToLabel(transposeChord(a, semitones))}
                   </span>
                 ))}

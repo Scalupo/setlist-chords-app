@@ -2,6 +2,7 @@ export type Acorde = {
   raiz: string;
   calidad: string;
   bajo: string | null;
+  duracion?: number; // 1 = normal; más alto = dura más antes de cambiar al siguiente
 };
 
 export type Seccion = {

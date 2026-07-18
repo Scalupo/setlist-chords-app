@@ -18,7 +18,7 @@ import {
   getVersionCompleta,
   SeccionInput,
 } from '@/lib/queries';
-import { chordToLabel, parseChordToken, transposeChord } from '@/lib/chords';
+import { chordToLabel, parseChordToken, transposeChord, acordesToLinea, parseAcordesLinea } from '@/lib/chords';
 import SortableSeccionCard, { SeccionEditable } from './SortableSeccionCard';
 
 const TIPOS = ['intro', 'verso', 'precoro', 'coro', 'puente', 'solo', 'outro', 'otro'];
@@ -100,7 +100,7 @@ export default function CancionForm({
           _key: generarKey(),
           tipo: s.tipo,
           etiqueta: s.etiqueta,
-          acordesTexto: s.acordes.map((a) => chordToLabel(a)).join(' '),
+          acordesTexto: acordesToLinea(s.acordes),
           letra: s.letra || '',
         }))
       );
@@ -180,12 +180,7 @@ export default function CancionForm({
     setSecciones((s) =>
       s.map((sec) => ({
         ...sec,
-        acordesTexto: sec.acordesTexto
-          .trim()
-          .split(/\s+/)
-          .filter(Boolean)
-          .map((tok) => chordToLabel(transposeChord(parseChordToken(tok), delta)))
-          .join(' '),
+        acordesTexto: acordesToLinea(parseAcordesLinea(sec.acordesTexto).map((a) => transposeChord(a, delta))),
       }))
     );
   }

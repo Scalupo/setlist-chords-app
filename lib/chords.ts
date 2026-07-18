@@ -36,10 +36,44 @@ export function transposeChord(chord: Acorde, semitones: number): Acorde {
     raiz: transposeNote(chord.raiz, semitones),
     calidad: chord.calidad,
     bajo: chord.bajo ? transposeNote(chord.bajo, semitones) : null,
+    duracion: chord.duracion,
   };
 }
 
 /** Formatea un acorde estructurado de vuelta a texto legible, ej. "Cm7/G". */
 export function chordToLabel(chord: Acorde): string {
   return chord.raiz + chord.calidad + (chord.bajo ? '/' + chord.bajo : '');
+}
+
+const MAX_DURACION = 5;
+
+/**
+ * Convierte una línea de texto como "C     Bb E F       D" en acordes
+ * estructurados, usando la cantidad de espacios entre uno y otro para
+ * marcar cuánto dura ese acorde antes de cambiar al siguiente (1 espacio =
+ * normal, más espacios = dura más). Así, un músico puede escribir los
+ * acordes espaciándolos igual que los "ve" en el compás.
+ */
+export function parseAcordesLinea(texto: string): Acorde[] {
+  const acordes: Acorde[] = [];
+  const regex = /(\S+)(\s*)/g;
+  let m: RegExpExecArray | null;
+  while ((m = regex.exec(texto)) !== null) {
+    const chord = parseChordToken(m[1]);
+    const espacios = m[2].length;
+    const duracion = Math.min(Math.max(espacios, 1), MAX_DURACION);
+    acordes.push({ ...chord, duracion });
+  }
+  return acordes;
+}
+
+/** El inverso de parseAcordesLinea: reconstruye el texto respetando el espaciado guardado. */
+export function acordesToLinea(acordes: Acorde[]): string {
+  return acordes
+    .map((a, i) => {
+      const label = chordToLabel(a);
+      if (i === acordes.length - 1) return label;
+      return label + ' '.repeat(Math.max(a.duracion || 1, 1));
+    })
+    .join('');
 }
