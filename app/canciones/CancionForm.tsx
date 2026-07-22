@@ -119,7 +119,7 @@ export default function CancionForm({
     setNotaIA(null);
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 58000);
+      const timeoutId = setTimeout(() => controller.abort(), 115000);
       const res = await fetch('/api/generar-acordes', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -320,7 +320,7 @@ export default function CancionForm({
       </button>
       <p className="text-xs text-muted mb-4">
         {buscandoIA
-          ? 'Puede tardar hasta 40 segundos — está buscando en internet y armando los acordes.'
+          ? 'Puede tardar hasta 90 segundos si busca en internet — con un link de referencia es mucho más rápido.'
           : modoEdicion
             ? 'Vuelve a generar el borrador si quieres reemplazar las secciones actuales.'
             : 'Genera un borrador de acordes por sección. Revísalo abajo antes de guardar.'}
