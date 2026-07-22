@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { Pencil, Guitar, Mic2, SunMoon, ChevronDown, ChevronUp, List, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Setlist, Version } from '@/lib/types';
 import { chordToLabel, parseChordToken, transposeChord } from '@/lib/chords';
@@ -35,6 +36,7 @@ function ModoShowInner() {
   const [dark, setDark] = useState(false);
   const [guardandoTono, setGuardandoTono] = useState(false);
   const [tonoGuardadoMsg, setTonoGuardadoMsg] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const touchStartX = useRef<number | null>(null);
   const peekTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -115,6 +117,13 @@ function ModoShowInner() {
     if (next < 0 || next >= versions.length) return;
     setIndex(next);
     setSemitones(0);
+    peekDrawers();
+  }
+
+  function irACancion(i: number) {
+    setIndex(i);
+    setSemitones(0);
+    setPickerOpen(false);
     peekDrawers();
   }
 
@@ -232,25 +241,31 @@ function ModoShowInner() {
             <span className="text-xl font-semibold truncate">{version.canciones.titulo}</span>
             <span className="text-sm text-muted truncate">{version.canciones.artista}</span>
             <span className="text-xs text-muted opacity-75 flex-shrink-0">· {version.etiqueta_version}</span>
-            <span className="text-muted text-xs flex-shrink-0">{tonoDrawerOpen ? '▲' : '▼'}</span>
+            <span className="text-muted flex-shrink-0">
+              {tonoDrawerOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </span>
           </button>
           <div className="flex gap-2 flex-shrink-0">
             <button
-              className="w-8 h-8 rounded-full border border-border text-xs"
+              className="w-11 h-11 rounded-2xl border border-border flex items-center justify-center"
               onClick={() => router.push(`/canciones/${version.id}/editar?setlistId=${id}&origen=show`)}
               title="Editar acordes (para ensayos)"
             >
-              ✏️
+              <Pencil size={20} />
             </button>
             <button
-              className="w-8 h-8 rounded-full border border-border text-xs"
+              className="w-11 h-11 rounded-2xl border border-border flex items-center justify-center"
               onClick={() => setModoVocalista((m) => !m)}
               title="Modo músico / vocalista"
             >
-              {modoVocalista ? 'V' : 'M'}
+              {modoVocalista ? <Guitar size={20} /> : <Mic2 size={20} />}
             </button>
-            <button className="w-8 h-8 rounded-full border border-border text-xs" onClick={toggleTema}>
-              ◐
+            <button
+              className="w-11 h-11 rounded-2xl border border-border flex items-center justify-center"
+              onClick={toggleTema}
+              title="Tema claro / oscuro"
+            >
+              <SunMoon size={20} />
             </button>
           </div>
         </div>
@@ -329,15 +344,66 @@ function ModoShowInner() {
             />
           ))}
         </div>
-        <div className="flex justify-between items-center pt-2 text-xs text-muted">
-          <button onClick={() => cambiarCancion(-1)} disabled={!prevVersion}>
+        <div className="flex items-center gap-2 pt-2 text-xs text-muted">
+          <button className="flex-1 text-left truncate" onClick={() => cambiarCancion(-1)} disabled={!prevVersion}>
             ← {prevVersion?.canciones.titulo || ''}
           </button>
-          <button onClick={() => cambiarCancion(1)} disabled={!nextVersion}>
+          <button
+            className="w-10 h-10 rounded-2xl border border-border flex items-center justify-center flex-shrink-0 text-text"
+            onClick={() => setPickerOpen(true)}
+            aria-label="Ver todas las canciones del setlist"
+          >
+            <List size={18} />
+          </button>
+          <button className="flex-1 text-right truncate" onClick={() => cambiarCancion(1)} disabled={!nextVersion}>
             {nextVersion?.canciones.titulo || ''} →
           </button>
         </div>
       </div>
+
+      {pickerOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center"
+          style={{ background: 'rgba(0,0,0,0.45)' }}
+          onClick={() => setPickerOpen(false)}
+        >
+          <div
+            className="w-full max-w-md bg-card rounded-t-3xl p-4 flex flex-col"
+            style={{ maxHeight: '70vh' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-3 flex-shrink-0">
+              <span className="text-sm font-medium">Canciones del setlist</span>
+              <button
+                className="w-9 h-9 rounded-2xl border border-border flex items-center justify-center"
+                onClick={() => setPickerOpen(false)}
+                aria-label="Cerrar"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="overflow-y-auto flex flex-col gap-1">
+              {versions.map((v, i) => (
+                <button
+                  key={v.id}
+                  onClick={() => irACancion(i)}
+                  className="flex items-center gap-3 p-2.5 rounded-xl text-left"
+                  style={{ background: i === index ? 'var(--chip)' : 'transparent' }}
+                >
+                  <span className="text-xs text-muted w-5 flex-shrink-0">{i + 1}.</span>
+                  <span className="flex-1 min-w-0">
+                    <span className="text-sm font-medium block truncate">{v.canciones.titulo}</span>
+                    <span className="text-xs text-muted block truncate">
+                      {v.canciones.artista} · {v.etiqueta_version}
+                    </span>
+                  </span>
+                  {i === index && <span className="text-accent flex-shrink-0">●</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { X, GripVertical } from 'lucide-react';
 import { SeccionInput } from '@/lib/queries';
 
 const TIPOS = ['intro', 'verso', 'precoro', 'coro', 'puente', 'solo', 'outro', 'otro'];
@@ -51,16 +52,20 @@ export default function SortableSeccionCard({
         {seccion.confianza === 'baja' && (
           <span className="text-[11px] px-2 py-0.5 rounded-full bg-chip text-muted">revisar acordes</span>
         )}
-        <button className="ml-auto text-red-600 text-sm" onClick={onQuitar}>
-          ×
+        <button
+          className="ml-auto w-8 h-8 rounded-2xl border border-border flex items-center justify-center"
+          style={{ color: 'var(--text-danger, #a32d2d)' }}
+          onClick={onQuitar}
+        >
+          <X size={15} />
         </button>
         <button
           {...attributes}
           {...listeners}
-          className="w-7 h-7 rounded-full border border-border text-sm cursor-grab active:cursor-grabbing touch-none flex-shrink-0"
+          className="w-8 h-8 rounded-2xl border border-border flex items-center justify-center cursor-grab active:cursor-grabbing touch-none flex-shrink-0"
           aria-label="Arrastrar para reordenar esta sección"
         >
-          ⠿
+          <GripVertical size={15} />
         </button>
       </div>
       <label className="block text-xs text-muted mb-1">Etiqueta</label>

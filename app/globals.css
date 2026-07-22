@@ -9,7 +9,7 @@
   --muted: #726f68;
   --border: #ddd9d0;
   --chip: #eeece5;
-  --accent: #3c3489;
+  --accent: #185fa5;
 }
 
 html.dark {
@@ -19,7 +19,7 @@ html.dark {
   --muted: #a8a6a0;
   --border: #3a3a38;
   --chip: #333331;
-  --accent: #7f77dd;
+  --accent: #378add;
 }
 
 body {

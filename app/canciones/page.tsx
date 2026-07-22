@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Pencil } from 'lucide-react';
 import { getAllVersions, VersionBusqueda } from '@/lib/queries';
 
 export default function CancionesPage() {
@@ -60,7 +61,7 @@ export default function CancionesPage() {
                 {v.artista} · {v.etiqueta_version}
               </span>
             </span>
-            <span className="text-muted text-sm">✏️</span>
+            <span className="text-muted"><Pencil size={16} /></span>
           </button>
         ))}
       </div>
