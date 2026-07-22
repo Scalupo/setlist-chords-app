@@ -37,6 +37,7 @@ function ModoShowInner() {
   const [guardandoTono, setGuardandoTono] = useState(false);
   const [tonoGuardadoMsg, setTonoGuardadoMsg] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [tamanoTexto, setTamanoTexto] = useState(100);
 
   const touchStartX = useRef<number | null>(null);
   const peekTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -93,7 +94,17 @@ function ModoShowInner() {
 
   useEffect(() => {
     if (document.documentElement.classList.contains('dark')) setDark(true);
+    const guardado = localStorage.getItem('ma_tamano_texto');
+    if (guardado) setTamanoTexto(Number(guardado));
   }, []);
+
+  function ajustarTamano(delta: number) {
+    setTamanoTexto((t) => {
+      const nuevo = Math.min(160, Math.max(70, t + delta));
+      localStorage.setItem('ma_tamano_texto', String(nuevo));
+      return nuevo;
+    });
+  }
 
   // Al cambiar de canción, mostramos brevemente ambos paneles (navegación y
   // tono) para confirmar de un vistazo dónde estás, y luego se cierran solos.
@@ -272,7 +283,7 @@ function ModoShowInner() {
 
         <div
           className="overflow-hidden text-xs text-muted transition-all"
-          style={{ maxHeight: tonoDrawerOpen ? 48 : 0 }}
+          style={{ maxHeight: tonoDrawerOpen ? 88 : 0 }}
         >
           <div className="flex items-center gap-2 pb-2 flex-wrap">
             <button
@@ -302,6 +313,23 @@ function ModoShowInner() {
             )}
             {tonoGuardadoMsg && <span className="text-[11px] text-muted">✓ Guardado</span>}
           </div>
+          <div className="flex items-center gap-2 pb-2">
+            <button
+              className="w-7 h-7 rounded-full border border-border"
+              onClick={() => ajustarTamano(-15)}
+              aria-label="Reducir tamaño de letra"
+            >
+              A-
+            </button>
+            <span>Tamaño de letra: {tamanoTexto}%</span>
+            <button
+              className="w-7 h-7 rounded-full border border-border"
+              onClick={() => ajustarTamano(15)}
+              aria-label="Aumentar tamaño de letra"
+            >
+              A+
+            </button>
+          </div>
         </div>
 
         <div className="border-b border-border mb-3" />
@@ -313,7 +341,10 @@ function ModoShowInner() {
           <div key={s.id}>
             <div className="text-[11px] tracking-wide uppercase text-muted mb-2">{s.etiqueta}</div>
             {modoVocalista ? (
-              <div className="text-[15px] leading-relaxed whitespace-pre-wrap">
+              <div
+                className="leading-relaxed whitespace-pre-wrap"
+                style={{ fontSize: `${Math.round(15 * (tamanoTexto / 100))}px` }}
+              >
                 {s.letra || <span className="text-muted">Sin letra capturada</span>}
               </div>
             ) : (
@@ -321,8 +352,11 @@ function ModoShowInner() {
                 {s.acordes.map((a, i) => (
                   <span
                     key={i}
-                    className="text-[22px] font-semibold px-3 py-1 rounded-lg bg-chip text-center"
-                    style={{ minWidth: `${20 + (Math.min(a.duracion || 1, 5) - 1) * 22}px` }}
+                    className="font-semibold px-3 py-1 rounded-lg bg-chip text-center"
+                    style={{
+                      fontSize: `${Math.round(22 * (tamanoTexto / 100))}px`,
+                      minWidth: `${(20 + (Math.min(a.duracion || 1, 5) - 1) * 22) * (tamanoTexto / 100)}px`,
+                    }}
                   >
                     {chordToLabel(transposeChord(a, semitones))}
                   </span>

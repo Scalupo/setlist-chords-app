@@ -96,6 +96,27 @@ export default function EditarSetlistPage() {
         <span className="text-xs px-2 py-0.5 rounded-full bg-chip text-muted">{setlist.id_corto}</span>
       </div>
 
+      <div className="flex flex-col gap-2 mb-4">
+        <button
+          className="w-full py-2.5 rounded-xl bg-accent text-white text-sm"
+          onClick={() => router.push(`/show/${id}`)}
+          disabled={versions.length === 0}
+        >
+          Abrir en modo show
+        </button>
+        <div className="flex gap-2">
+          <button
+            className="flex-1 py-2.5 rounded-xl border border-border text-sm"
+            onClick={() => router.push(`/setlists/${id}/agregar`)}
+          >
+            + Agregar canción
+          </button>
+          <button className="flex-1 py-2.5 rounded-xl border border-border text-sm" onClick={compartir}>
+            Compartir por WhatsApp
+          </button>
+        </div>
+      </div>
+
       <div className="border border-border rounded-2xl p-4 bg-card mb-4">
         <div className="flex justify-between items-center mb-2">
           <h2 className="text-sm font-medium">Canciones</h2>
@@ -121,26 +142,6 @@ export default function EditarSetlistPage() {
             </div>
           </SortableContext>
         </DndContext>
-
-        <button
-          className="w-full mt-3 py-2 rounded-xl border border-dashed border-border text-sm"
-          onClick={() => router.push(`/setlists/${id}/agregar`)}
-        >
-          + Agregar canción
-        </button>
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <button
-          className="w-full py-2.5 rounded-xl bg-accent text-white text-sm"
-          onClick={() => router.push(`/show/${id}`)}
-          disabled={versions.length === 0}
-        >
-          Abrir en modo show
-        </button>
-        <button className="w-full py-2.5 rounded-xl border border-border text-sm" onClick={compartir}>
-          Compartir por WhatsApp
-        </button>
       </div>
     </main>
   );

@@ -44,6 +44,13 @@ export default function AgregarCancionPage() {
         className="w-full mb-3 px-3 py-2 rounded-lg border border-border bg-card"
       />
 
+      <button
+        className="w-full mb-4 py-2.5 rounded-xl border border-dashed border-border text-sm"
+        onClick={() => router.push(`/canciones/nueva?setlistId=${id}`)}
+      >
+        + Crear nueva canción
+      </button>
+
       <div className="border border-border rounded-2xl bg-card divide-y divide-border mb-4">
         {resultados.length === 0 && (
           <div className="p-4 text-sm text-muted text-center">Sin resultados.</div>
@@ -67,13 +74,6 @@ export default function AgregarCancionPage() {
           </div>
         ))}
       </div>
-
-      <button
-        className="w-full py-2.5 rounded-xl border border-dashed border-border text-sm"
-        onClick={() => router.push(`/canciones/nueva?setlistId=${id}`)}
-      >
-        + Crear nueva canción
-      </button>
     </main>
   );
 }
