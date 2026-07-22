@@ -75,6 +75,7 @@ export default function CancionForm({
   const [secciones, setSecciones] = useState<SeccionEditable[]>([]);
   const [guardando, setGuardando] = useState(false);
   const [buscandoIA, setBuscandoIA] = useState(false);
+  const [urlReferencia, setUrlReferencia] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [notaIA, setNotaIA] = useState<string | null>(null);
 
@@ -118,11 +119,11 @@ export default function CancionForm({
     setNotaIA(null);
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 55000);
+      const timeoutId = setTimeout(() => controller.abort(), 58000);
       const res = await fetch('/api/generar-acordes', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ titulo, artista, version: etiquetaVersion }),
+        body: JSON.stringify({ titulo, artista, version: etiquetaVersion, link: urlReferencia }),
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
@@ -291,6 +292,17 @@ export default function CancionForm({
         </button>
         <span className="text-xs text-muted">transportar todo</span>
       </div>
+
+      <label className="block text-xs text-muted mb-1">Link de referencia (opcional)</label>
+      <input
+        value={urlReferencia}
+        onChange={(e) => setUrlReferencia(e.target.value)}
+        placeholder="https://... una página con los acordes"
+        className="w-full mb-2 px-3 py-2 rounded-lg border border-border bg-card text-sm"
+      />
+      <p className="text-xs text-muted mb-3">
+        Si pegas un link, la IA lo usa directo (más rápido) en vez de buscar en internet. Nunca importa la letra, aunque la página la tenga.
+      </p>
 
       <button
         disabled={buscandoIA}
