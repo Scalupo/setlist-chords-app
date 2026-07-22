@@ -4,9 +4,13 @@ export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 const REGLAS_COMUNES = `
+QUÉ HACER CON LA LETRA
+Esta app tiene un aviso de derechos con mecanismo de retiro para titulares de derechos
+(ver TERMINOS_Y_CONDICIONES.md), por lo que SÍ puedes incluir la letra correspondiente
+a cada sección, de forma fiel a la fuente, sin resumir ni parafrasear.
+
 QUÉ NO HACER
-- Nunca incluyas la letra de la canción, ni completa ni parcial, aunque la fuente la tenga. Solo acordes y nombres de sección.
-- Nunca copies texto largo de ninguna fuente. Solo extraes los símbolos de acorde (ej. "Cm7", "G/B", "Dsus4").
+- Nunca copies texto largo de reseñas o comentarios de ninguna fuente -- solo acordes y letra de la canción misma.
 - Si hay ambigüedad en algún acorde, marca esa sección con "confianza": "baja".
 
 FORMATO DE CADA ACORDE
@@ -39,7 +43,8 @@ FORMATO DE SALIDA (JSON exacto, sin nada más en la respuesta, sin \`\`\`json):
       "acordes": [
         {"raiz": "G", "calidad": "", "bajo": null},
         {"raiz": "E", "calidad": "m", "bajo": null}
-      ]
+      ],
+      "letra": ""
     }
   ]
 }`;

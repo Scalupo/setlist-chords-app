@@ -144,7 +144,7 @@ export default function CancionForm({
         acordesTexto: (s.acordes || [])
           .map((a: any) => chordToLabel({ raiz: a.raiz, calidad: a.calidad || '', bajo: a.bajo || null }))
           .join(' '),
-        letra: '',
+        letra: s.letra || '',
         confianza: s.confianza,
       }));
       setSecciones(nuevasSecciones);
@@ -301,7 +301,7 @@ export default function CancionForm({
         className="w-full mb-2 px-3 py-2 rounded-lg border border-border bg-card text-sm"
       />
       <p className="text-xs text-muted mb-3">
-        Si pegas un link, la IA lo usa directo (más rápido) en vez de buscar en internet. Nunca importa la letra, aunque la página la tenga.
+        Si pegas un link, la IA lo usa directo (más rápido) en vez de buscar en internet. Trae acordes y letra como borrador — revísalos antes de guardar.
       </p>
 
       <button
