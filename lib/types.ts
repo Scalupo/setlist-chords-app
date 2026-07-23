@@ -29,6 +29,12 @@ export type Version = {
   secciones: Seccion[];
 };
 
+export type Banda = {
+  id: string;
+  nombre: string;
+  creado_en: string;
+};
+
 export type Setlist = {
   id: string;
   id_corto: string;

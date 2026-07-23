@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createSetlist } from '@/lib/queries';
+import { getBandaActualId } from '@/lib/bandaActual';
 
 export default function NuevoSetlistPage() {
   const router = useRouter();
@@ -15,10 +16,15 @@ export default function NuevoSetlistPage() {
       setError('Ponle un nombre al show antes de continuar.');
       return;
     }
+    const bandaId = getBandaActualId();
+    if (!bandaId) {
+      router.push('/bandas');
+      return;
+    }
     setGuardando(true);
     setError(null);
     try {
-      const id = await createSetlist(nombre.trim());
+      const id = await createSetlist(nombre.trim(), bandaId);
       router.push(`/setlists/${id}/edit`);
     } catch (e: any) {
       setError(e.message || 'No se pudo crear el setlist');

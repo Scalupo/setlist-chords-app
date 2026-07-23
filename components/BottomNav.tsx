@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ListMusic, Guitar } from 'lucide-react';
+import { ListMusic, Guitar, Users } from 'lucide-react';
 
 const ITEMS = [
   { href: '/', label: 'Setlists', Icon: ListMusic },
   { href: '/canciones', label: 'Canciones', Icon: Guitar },
+  { href: '/bandas', label: 'Bandas', Icon: Users },
 ];
 
 export default function BottomNav() {

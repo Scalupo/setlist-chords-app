@@ -1,19 +1,67 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { getSetlists } from '@/lib/queries';
+import { getSetlists, getBandas } from '@/lib/queries';
+import { Setlist, Banda } from '@/lib/types';
+import { getBandaActualId, setBandaActualId } from '@/lib/bandaActual';
 
-export const dynamic = 'force-dynamic';
+export default function HomePage() {
+  const router = useRouter();
+  const [banda, setBanda] = useState<Banda | null>(null);
+  const [setlists, setSetlists] = useState<Setlist[]>([]);
+  const [loading, setLoading] = useState(true);
 
-export default async function HomePage() {
-  const setlists = await getSetlists();
+  useEffect(() => {
+    async function load() {
+      const bandas = await getBandas();
+
+      if (bandas.length === 0) {
+        // Primera vez que se usa la app: no hay ninguna banda todavía.
+        router.push('/bandas');
+        return;
+      }
+
+      let actualId = getBandaActualId();
+      const actualExiste = bandas.some((b) => b.id === actualId);
+      if (!actualId || !actualExiste) {
+        if (bandas.length === 1) {
+          // Solo hay una banda -- la seleccionamos sola, sin pedirle nada al usuario.
+          actualId = bandas[0].id;
+          setBandaActualId(actualId);
+        } else {
+          router.push('/bandas');
+          return;
+        }
+      }
+
+      const bandaActual = bandas.find((b) => b.id === actualId) || null;
+      setBanda(bandaActual);
+      const sl = await getSetlists(actualId!);
+      setSetlists(sl);
+      setLoading(false);
+    }
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (loading) return <div className="p-6 text-center text-muted">Cargando…</div>;
 
   return (
     <main className="max-w-md mx-auto p-4">
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-center mb-1">
         <h1 className="text-xl font-semibold">Tus setlists</h1>
         <Link href="/canciones" className="text-sm text-accent underline">
           Tus canciones
         </Link>
       </div>
+
+      {banda && (
+        <Link href="/bandas" className="inline-block text-xs text-muted underline mb-4">
+          {banda.nombre} · cambiar
+        </Link>
+      )}
 
       {setlists.length === 0 && (
         <div className="text-center text-muted py-10 text-sm">Todavía no tienes setlists.</div>

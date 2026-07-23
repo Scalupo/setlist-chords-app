@@ -1,14 +1,30 @@
 import { supabase } from './supabase';
-import { Setlist, SetlistItemRow, Version } from './types';
+import { Setlist, SetlistItemRow, Version, Banda } from './types';
 import { parseChordToken, transposeChord, chordToLabel, parseAcordesLinea } from './chords';
 
-export async function getSetlists(): Promise<Setlist[]> {
+export async function getSetlists(bandaId: string): Promise<Setlist[]> {
   const { data, error } = await supabase
     .from('setlists')
     .select('id, id_corto, nombre, banda_id, fecha, lugar')
+    .eq('banda_id', bandaId)
     .order('creado_en', { ascending: false });
   if (error) throw error;
   return data as Setlist[];
+}
+
+export async function getBandas(): Promise<Banda[]> {
+  const { data, error } = await supabase
+    .from('bandas')
+    .select('id, nombre, creado_en')
+    .order('creado_en', { ascending: true });
+  if (error) throw error;
+  return data as Banda[];
+}
+
+export async function createBanda(nombre: string): Promise<Banda> {
+  const { data, error } = await supabase.from('bandas').insert({ nombre }).select('id, nombre, creado_en').single();
+  if (error || !data) throw error || new Error('No se pudo crear la banda');
+  return data as Banda;
 }
 
 export async function getSetlist(id: string): Promise<Setlist | null> {
@@ -48,23 +64,8 @@ export async function getSetlistVersions(setlistId: string): Promise<Version[]> 
   });
 }
 
-/** Devuelve la primera banda que encuentre, o crea una por default.
- *  Simplificación de v1: todavía no hay pantalla de gestión de bandas. */
-export async function getOrCreateBandaId(): Promise<string> {
-  const { data: existente } = await supabase.from('bandas').select('id').limit(1).maybeSingle();
-  if (existente) return existente.id;
-  const { data: nueva, error } = await supabase
-    .from('bandas')
-    .insert({ nombre: 'Mi banda' })
-    .select('id')
-    .single();
-  if (error || !nueva) throw error || new Error('No se pudo crear la banda por default');
-  return nueva.id;
-}
-
-/** Crea un setlist vacío con un id_corto generado por la función de Postgres. */
-export async function createSetlist(nombre: string): Promise<string> {
-  const bandaId = await getOrCreateBandaId();
+/** Crea un setlist vacío, dentro de la banda indicada, con un id_corto generado por Postgres. */
+export async function createSetlist(nombre: string, bandaId: string): Promise<string> {
   const { data: idCorto, error: e1 } = await supabase.rpc('generar_id_corto');
   if (e1) throw e1;
   const { data, error } = await supabase
