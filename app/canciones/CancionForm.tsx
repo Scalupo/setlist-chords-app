@@ -16,8 +16,13 @@ import {
   createCancionVersion,
   updateCancionVersion,
   getVersionCompleta,
+  getSetlist,
+  getBandas,
+  copiarVersionABanda,
   SeccionInput,
 } from '@/lib/queries';
+import { Banda } from '@/lib/types';
+import { getBandaActualId } from '@/lib/bandaActual';
 import { chordToLabel, parseChordToken, transposeChord, acordesToLinea, parseAcordesLinea } from '@/lib/chords';
 import SortableSeccionCard, { SeccionEditable } from './SortableSeccionCard';
 
@@ -78,6 +83,11 @@ export default function CancionForm({
   const [urlReferencia, setUrlReferencia] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [notaIA, setNotaIA] = useState<string | null>(null);
+  const [bandaIdParaCrear, setBandaIdParaCrear] = useState<string | null>(null);
+  const [otrasBandas, setOtrasBandas] = useState<Banda[]>([]);
+  const [copiandoABanda, setCopiandoABanda] = useState<string | null>(null);
+  const [copiadoMsg, setCopiadoMsg] = useState<string | null>(null);
+  const [bandaPropietariaId, setBandaPropietariaId] = useState<string | null>(null);
 
   const seccionSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -96,6 +106,7 @@ export default function CancionForm({
       setArtista(v.canciones.artista);
       setEtiquetaVersion(v.etiqueta_version);
       setTono(v.tono_original || '');
+      setBandaPropietariaId(v.canciones.banda_id);
       setSecciones(
         v.secciones.map((s) => ({
           _key: generarKey(),
@@ -108,6 +119,42 @@ export default function CancionForm({
       setCargando(false);
     });
   }, [versionIdToEdit]);
+
+  // Modo crear: determinamos a qué banda pertenecerá la canción nueva --
+  // la del setlist si viene de ahí, o la banda activa en general.
+  useEffect(() => {
+    if (modoEdicion) return;
+    async function resolverBanda() {
+      if (setlistId) {
+        const sl = await getSetlist(setlistId);
+        setBandaIdParaCrear(sl?.banda_id || getBandaActualId());
+      } else {
+        setBandaIdParaCrear(getBandaActualId());
+      }
+    }
+    resolverBanda();
+  }, [modoEdicion, setlistId]);
+
+  // Modo editar: cargamos el resto de las bandas, para poder copiar esta canción a otra.
+  useEffect(() => {
+    if (!modoEdicion) return;
+    getBandas().then(setOtrasBandas);
+  }, [modoEdicion]);
+
+  async function copiarABanda(bandaDestinoId: string) {
+    if (!versionIdToEdit) return;
+    setCopiandoABanda(bandaDestinoId);
+    try {
+      await copiarVersionABanda(versionIdToEdit, bandaDestinoId);
+      const nombre = otrasBandas.find((b) => b.id === bandaDestinoId)?.nombre;
+      setCopiadoMsg(`Copiada a "${nombre}"`);
+      setTimeout(() => setCopiadoMsg(null), 3000);
+    } catch {
+      setError('No se pudo copiar la canción a esa banda.');
+    } finally {
+      setCopiandoABanda(null);
+    }
+  }
 
   async function buscarConIA() {
     if (!titulo.trim()) {
@@ -214,7 +261,13 @@ export default function CancionForm({
         });
         volverAqui();
       } else {
+        if (!bandaIdParaCrear) {
+          setError('No se pudo determinar la banda. Ve a "Bandas" y selecciona una primero.');
+          setGuardando(false);
+          return;
+        }
         await createCancionVersion({
+          bandaId: bandaIdParaCrear,
           titulo: titulo.trim(),
           artista: artista.trim(),
           etiquetaVersion: etiquetaVersion.trim(),
@@ -240,6 +293,27 @@ export default function CancionForm({
         </button>
         <h1 className="text-lg font-semibold">{modoEdicion ? 'Editar canción' : 'Nueva canción'}</h1>
       </div>
+
+      {modoEdicion && otrasBandas.filter((b) => b.id !== bandaPropietariaId).length > 0 && (
+        <div className="border border-border rounded-2xl p-3 bg-card mb-4">
+          <p className="text-xs text-muted mb-2">Copiar esta canción a otra banda (queda como copia independiente):</p>
+          <div className="flex flex-wrap gap-2">
+            {otrasBandas
+              .filter((b) => b.id !== bandaPropietariaId)
+              .map((b) => (
+                <button
+                  key={b.id}
+                  disabled={copiandoABanda === b.id}
+                  onClick={() => copiarABanda(b.id)}
+                  className="text-xs px-3 py-1.5 rounded-full border border-border disabled:opacity-60"
+                >
+                  {copiandoABanda === b.id ? 'Copiando…' : `→ ${b.nombre}`}
+                </button>
+              ))}
+          </div>
+          {copiadoMsg && <p className="text-xs text-accent mt-2">✓ {copiadoMsg}</p>}
+        </div>
+      )}
 
       <label className="block text-xs text-muted mb-1">Título</label>
       <input

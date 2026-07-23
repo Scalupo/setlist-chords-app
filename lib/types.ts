@@ -17,6 +17,7 @@ export type Seccion = {
 export type Cancion = {
   titulo: string;
   artista: string;
+  banda_id: string;
 };
 
 export type Version = {

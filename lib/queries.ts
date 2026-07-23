@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import { Setlist, SetlistItemRow, Version, Banda } from './types';
-import { parseChordToken, transposeChord, chordToLabel, parseAcordesLinea } from './chords';
+import { parseChordToken, transposeChord, chordToLabel, parseAcordesLinea, acordesToLinea } from './chords';
 
 export async function getSetlists(bandaId: string): Promise<Setlist[]> {
   const { data, error } = await supabase
@@ -45,7 +45,7 @@ export async function getSetlistVersions(setlistId: string): Promise<Version[]> 
       `orden,
        versiones (
          id, cancion_id, etiqueta_version, tono_original, capo,
-         canciones ( titulo, artista ),
+         canciones ( titulo, artista, banda_id ),
          secciones ( id, tipo, etiqueta, orden, acordes, letra )
        )`
     )
@@ -122,11 +122,12 @@ export type VersionBusqueda = {
   artista: string;
 };
 
-/** Busca versiones existentes por título o artista, para el buscador de "agregar canción". */
-export async function searchVersions(query: string): Promise<VersionBusqueda[]> {
+/** Busca versiones existentes por título o artista, dentro de una banda, para el buscador de "agregar canción". */
+export async function searchVersions(query: string, bandaId: string): Promise<VersionBusqueda[]> {
   let req = supabase
     .from('versiones')
-    .select('id, etiqueta_version, canciones!inner(titulo, artista)')
+    .select('id, etiqueta_version, canciones!inner(titulo, artista, banda_id)')
+    .eq('canciones.banda_id', bandaId)
     .order('creado_en', { ascending: false })
     .limit(30);
   if (query.trim()) {
@@ -149,8 +150,9 @@ export type SeccionInput = {
   letra: string;
 };
 
-/** Crea una canción + versión + secciones nuevas, y opcionalmente la agrega a un setlist. */
+/** Crea una canción + versión + secciones nuevas, dentro de una banda, y opcionalmente la agrega a un setlist. */
 export async function createCancionVersion(input: {
+  bandaId: string;
   titulo: string;
   artista: string;
   etiquetaVersion: string;
@@ -160,7 +162,7 @@ export async function createCancionVersion(input: {
 }): Promise<string> {
   const { data: cancion, error: e1 } = await supabase
     .from('canciones')
-    .insert({ titulo: input.titulo, artista: input.artista })
+    .insert({ titulo: input.titulo, artista: input.artista, banda_id: input.bandaId })
     .select('id')
     .single();
   if (e1 || !cancion) throw e1;
@@ -196,9 +198,34 @@ export async function createCancionVersion(input: {
   return version.id;
 }
 
-/** Lista todas las versiones guardadas (el "banco" completo), para la pantalla de biblioteca. */
-export async function getAllVersions(query: string = ''): Promise<VersionBusqueda[]> {
-  return searchVersions(query);
+/** Lista todas las versiones guardadas de una banda (su "banco" completo), para la biblioteca. */
+export async function getAllVersions(query: string, bandaId: string): Promise<VersionBusqueda[]> {
+  return searchVersions(query, bandaId);
+}
+
+/**
+ * Copia una canción/versión completa (con sus secciones) a otra banda, creando
+ * registros nuevos e independientes -- así cada banda puede seguir editando su
+ * propia copia sin afectar a la original.
+ */
+export async function copiarVersionABanda(versionId: string, bandaDestinoId: string): Promise<string> {
+  const original = await getVersionCompleta(versionId);
+  if (!original) throw new Error('No se encontró la canción a copiar');
+
+  const nuevaVersionId = await createCancionVersion({
+    bandaId: bandaDestinoId,
+    titulo: original.canciones.titulo,
+    artista: original.canciones.artista,
+    etiquetaVersion: original.etiqueta_version,
+    tono: original.tono_original || '',
+    secciones: original.secciones.map((s) => ({
+      tipo: s.tipo,
+      etiqueta: s.etiqueta,
+      acordesTexto: acordesToLinea(s.acordes),
+      letra: s.letra || '',
+    })),
+  });
+  return nuevaVersionId;
 }
 
 /** Trae una versión completa (con secciones) por su ID, para precargar el editor. */
@@ -207,7 +234,7 @@ export async function getVersionCompleta(versionId: string): Promise<Version | n
     .from('versiones')
     .select(
       `id, cancion_id, etiqueta_version, tono_original, capo,
-       canciones ( titulo, artista ),
+       canciones ( titulo, artista, banda_id ),
        secciones ( id, tipo, etiqueta, orden, acordes, letra )`
     )
     .eq('id', versionId)

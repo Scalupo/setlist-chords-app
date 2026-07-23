@@ -4,17 +4,30 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Pencil } from 'lucide-react';
 import { getAllVersions, VersionBusqueda } from '@/lib/queries';
+import { getBandaActualId } from '@/lib/bandaActual';
 
 export default function CancionesPage() {
   const router = useRouter();
   const [q, setQ] = useState('');
   const [items, setItems] = useState<VersionBusqueda[]>([]);
   const [cargando, setCargando] = useState(true);
+  const [bandaId, setBandaId] = useState<string | null>(null);
 
   useEffect(() => {
+    const id = getBandaActualId();
+    if (!id) {
+      router.push('/bandas');
+      return;
+    }
+    setBandaId(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!bandaId) return;
     let vivo = true;
     setCargando(true);
-    getAllVersions(q).then((r) => {
+    getAllVersions(q, bandaId).then((r) => {
       if (vivo) {
         setItems(r);
         setCargando(false);
@@ -23,7 +36,7 @@ export default function CancionesPage() {
     return () => {
       vivo = false;
     };
-  }, [q]);
+  }, [q, bandaId]);
 
   return (
     <main className="max-w-md mx-auto p-4">

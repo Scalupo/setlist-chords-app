@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { addVersionToSetlist, searchVersions, VersionBusqueda } from '@/lib/queries';
+import { addVersionToSetlist, searchVersions, getSetlist, VersionBusqueda } from '@/lib/queries';
 
 export default function AgregarCancionPage() {
   const { id } = useParams<{ id: string }>();
@@ -10,16 +10,22 @@ export default function AgregarCancionPage() {
   const [q, setQ] = useState('');
   const [resultados, setResultados] = useState<VersionBusqueda[]>([]);
   const [agregando, setAgregando] = useState<string | null>(null);
+  const [bandaId, setBandaId] = useState<string | null>(null);
 
   useEffect(() => {
+    getSetlist(id).then((sl) => setBandaId(sl?.banda_id || null));
+  }, [id]);
+
+  useEffect(() => {
+    if (!bandaId) return;
     let vivo = true;
-    searchVersions(q).then((r) => {
+    searchVersions(q, bandaId).then((r) => {
       if (vivo) setResultados(r);
     });
     return () => {
       vivo = false;
     };
-  }, [q]);
+  }, [q, bandaId]);
 
   async function agregar(versionId: string) {
     setAgregando(versionId);
